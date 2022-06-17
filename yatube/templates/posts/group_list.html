@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+ 
+
+{%block content%}
+<div class="container py-5"> 
+    <h1> {{ group.title }} </h1>
+    <p> {{ group.description }} </p>
+    <article>
+        {% for post in posts %}
+        {% include 'includes/group_post.html' %}
+            {% if not forloop.last %}<hr>{% endif %}
+        {% endfor %}
+    </article> 
+</div>
+{% endblock %}

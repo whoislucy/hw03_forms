@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %} 
+    Пост {{post_id_selected.text|truncatechars:30}}
+{% endblock %}
+
+{%block content%}
+<div class="row">
+    <aside class="col-12 col-md-3">
+        {% include 'includes/group_one_post.html' %}
+    </aside>
+    <article class="col-12 col-md-9">
+      <p>
+        {{post_id_selected.text}}  
+      </p>
+    </article>
+</div> 
+{% endblock %}
