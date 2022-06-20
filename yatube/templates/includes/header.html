@@ -21,12 +21,12 @@
             {% if request.user.is_authenticated %}
                 {% with request.resolver_match.view_name as view_name %}
                     <li class="nav-item"> 
-                        <a class="nav-link" href="<!--  -->">Новая запись</a>
+                        <a class="nav-link {% if view_name  == 'posts:post_create' %}active{% endif %}" href="{% url 'posts:post_create' %}">Новая запись</a>
                     </li>
                 {% endwith %}
                 {% with request.resolver_match.view_name as view_name %}
                     <li class="nav-item"> 
-                        <a class="nav-link link-light {% if view_name  == 'users:password_change' %}active{% endif %}" href="{% url 'users:password_change' %}">Изменить пароль</a>
+                        <a class="nav-link link-light {% if view_name  == 'users:password_change_form' %}active{% endif %}" href="{% url 'users:password_change_form' %}">Изменить пароль</a>
                     </li>
                 {% endwith %}
                 {% with request.resolver_match.view_name as view_name %}

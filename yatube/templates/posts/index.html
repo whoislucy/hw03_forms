@@ -1,21 +1,17 @@
 {% extends 'base.html' %}
 
 {% block title %} 
-    {{ text }}
+    Последние обновления на сайте
 {% endblock %}
 
 {%block content%}
 <div class="container py-5"> 
-<h1>Последние обновления на сайте</h1>
-    <article>
+
         {% for post in page_obj %}
             {% include 'includes/group_post.html' %}
-            {% if post.group %}   
-                <a href="{% url 'posts:grouppa' post.group.slug %}">все записи группы: {{post.group}}</a>
-            {% endif %}
             {% if not forloop.last %}<hr>{% endif %}
         {% endfor %} 
         {% include 'posts/includes/paginator.html' %}
-    </article>
+
 </div>        
 {% endblock %}
