@@ -74,13 +74,12 @@ def post_detail(request, post_id):
 def post_create(request):
     """Форма для публикации поста"""
     if request.method == 'POST':
-        form = PostForm(request.POST)
+        form = PostForm(request.POST or None)
         if form.is_valid():
-            text = form.cleaned_data['text']
-            form = form.save(commit=False)
-            form.author =  request.user
+            post = form.save(commit=False)
+            post.author = request.user
             form.save()
-            return redirect(f'/profile/{form.author}/')
+            return redirect('posts:profile', post.author)
         return render(request, 'posts/create_post.html', {'form': form})
     form = PostForm()
     return render(request, 'posts/create_post.html', {'form': form})
@@ -88,25 +87,26 @@ def post_create(request):
 
 @login_required
 def post_edit(request, post_id):
-    is_edit = 1
+    """Форма редактирования поста"""
+    is_edit = True
     post_id_selected = get_object_or_404(Post, id=post_id)
     if post_id_selected.author != request.user:
         return redirect('posts:post_detail', post_id)
-    form = PostForm()
-    form.text = post_id_selected.text
-    form.group = post_id_selected.text
+    form = PostForm(request.POST or None, instance=post_id_selected)
     context = {
-        'is_edit' : is_edit,
-        'form' : form
+        'is_edit': is_edit,
+        'form': form,
+        'post_id_selected': post_id_selected
     }
     if request.method == 'POST':
-        form = PostForm(request.POST)
+        form = PostForm(request.POST or None)
         if form.is_valid():
-            text = form.cleaned_data['text']
-            form = form.save(commit=False)
-            form.author =  request.user
-            form.save() 
-            return redirect('posts:post_detail', post_id)
+            post = form.save(commit=False)
+            post.author = request.user
+            post.group = post_id_selected.group
+            post.id = post_id_selected.id
+            post.pub_date = post_id_selected.pub_date
+            form.save()
+            return redirect('posts:post_detail', post.id)
         return render(request, 'posts/create_post.html', context)
-    form = PostForm(instance=post_id_selected)
     return render(request, 'posts/create_post.html', context)

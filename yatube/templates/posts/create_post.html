@@ -21,14 +21,19 @@
           {% endif %}             
         </div>
         <div class="card-body">        
-          <form method="post" action="{% url 'posts:post_create' %}">
+          <form method="post" action="
+          {% if is_edit %}
+            {% url 'posts:post_edit' post_id_selected.id %}
+          {% else %}
+            {% url 'posts:post_create' %}
+          {% endif %}">
             {% csrf_token %}        
             <div class="form-group row my-3 p-3">
               <label for="id_text">
                 Текст поста                  
                 <span class="required text-danger" >*</span>                  
               </label>
-              <textarea name="text" cols="40" rows="10" class="form-control" required id="id_text">{% if is_edit %}{{form.text}}{% endif %}</textarea>                
+              <textarea name="text" cols="40" rows="10" class="form-control" required id="id_text">{% if is_edit %}{{form.instance.text}}{% endif %}</textarea>                
               <small id="id_text-help" class="form-text text-muted">
                 {% if is_edit %}
                   Редактировать пост
@@ -47,7 +52,7 @@
                     {%if form.group is None%}
                       ---------
                     {% else %}
-                      {{form.group}} 
+                      {{form.instance.group }} 
                     {% endif %} 
                   </option>
                 {% else %}
