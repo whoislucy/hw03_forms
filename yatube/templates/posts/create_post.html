@@ -1,11 +1,7 @@
 {% extends 'base.html' %}
 
 {% block title %} 
-  {% if is_edit %}
-  Редактировать запись
-  {% else %}
-  Добавить запись
-  {% endif %}   
+  {% if is_edit %} Редактировать запись {% else %} Добавить запись {% endif %}   
 {% endblock %}
 
 {%block content%}
@@ -14,68 +10,47 @@
     <div class="col-md-8 p-5">
       <div class="card">
         <div class="card-header">       
-          {% if is_edit %}
-            Редактировать запись
-          {% else %}
-            Добавить запись
-          {% endif %}             
+          {% if is_edit %} Редактировать запись {% else %} Добавить запись {% endif %}             
         </div>
         <div class="card-body">        
           <form method="post" action="
-          {% if is_edit %}
-            {% url 'posts:post_edit' post_id_selected.id %}
-          {% else %}
+          {% if is_edit %} 
+            {% url 'posts:post_edit' post_selected.id %}
+          {% else %} 
             {% url 'posts:post_create' %}
           {% endif %}">
-            {% csrf_token %}        
+            {% csrf_token %}    
+            {% for field in form %}    
             <div class="form-group row my-3 p-3">
-              <label for="id_text">
-                Текст поста                  
-                <span class="required text-danger" >*</span>                  
-              </label>
-              <textarea name="text" cols="40" rows="10" class="form-control" required id="id_text">{% if is_edit %}{{form.instance.text}}{% endif %}</textarea>                
-              <small id="id_text-help" class="form-text text-muted">
-                {% if is_edit %}
-                  Редактировать пост
-                {% else %}
-                  Текст нового поста
-                {% endif %}  
-              </small>                  
-            </div>            
-            <div class="form-group row my-3 p-3">
-              <label for="id_group">
-                Группа                  
-              </label>
-              <select name="group" class="form-control" id="id_group">
-                {% if is_edit %}
-                  <option value="" selected> 
-                    {%if form.group is None%}
-                      ---------
-                    {% else %}
-                      {{form.instance.group }} 
-                    {% endif %} 
-                  </option>
-                {% else %}
-                  <option value=""> 
-                    {% for group in form.group%}
-                      {%if group is not NULL%} 
-                        {{group}} 
-                      {%endif%}
-                    {% endfor %}
-                  </option>
-                {% endif %}  
-              </select>
-              <small id="id_group-help" class="form-text text-muted">
-                Группа, к которой будет относиться пост
-              </small>
+            {% if field.id_for_label == 'id_text' %} 
+              <label title="{{ form.text.help_text }}" for="{{ field.text.id_for_label }} ">
+                Текст поста
+                {% if field.field.required %}
+                  <span class="required text-danger">*</span>
+                {% endif %}
+              </label>    
+              {{ field }}
+              {% if field.help_text %}
+                <small id="{{ field.text.id_for_label }}-help" class="form-text text-muted">
+                  {% if is_edit %} Редактировать пост {% else %} {{ form.text.help_text }} {% endif %} 
+                </small>
+              {% endif %}
+            {% elif field.id_for_label == 'id_group'%}
+              <label for="{{ field.group.id_for_label }} ">
+                Группа
+              </label>    
+              {{ field }}
+              {% if field.help_text %}
+                <small id="{{ field.group.id_for_label }}-help" class="form-text text-muted">
+                  {% if is_edit %} Группа поста {% else %} {{ form.group.help_text }} {% endif %} 
+                </small>
+              {% endif %}
+            {% endif %}
             </div>
+            {% endfor %}  
             <div class="d-flex justify-content-end">
               <button type="submit" class="btn btn-primary">
-                {% if is_edit %}
-                  Сохранить
-                {% else %}
-                  Добавить
-                {% endif %}  
+                {% if is_edit %} Сохранить {% else %} Добавить {% endif %}  
               </button>
             </div>
           </form>

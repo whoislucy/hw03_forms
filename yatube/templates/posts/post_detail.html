@@ -1,8 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %} 
-    Пост {{post_id_selected.text|truncatechars:30}}
-{% endblock %}
+{% block title %} Пост {{post_selected.text|truncatechars:30}} {% endblock %}
 
 {%block content%}
 <div class="row">
@@ -10,9 +8,9 @@
         {% include 'includes/group_one_post.html' %}
     </aside>
     <article class="col-12 col-md-9">
-      <p>{{post_id_selected.text}}</p>
+      <p>{{post_selected.text}}</p>
       {% if request.user.is_authenticated  %}
-        <a class="btn btn-primary" href="{% url 'posts:post_edit'  post_id_selected.id %}">Редактировать запись</a>
+        <a class="btn btn-primary" href="{% url 'posts:post_edit'  post_selected.id %}">Редактировать запись</a>
       {% endif %}
     </article>
 </div> 
