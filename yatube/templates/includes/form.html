@@ -1,0 +1,41 @@
+<form method="post" action="
+    {% if is_edit %} 
+    {% url 'posts:post_edit' post_selected.id %}
+    {% else %} 
+    {% url 'posts:post_create' %}
+    {% endif %}">
+    {% csrf_token %}    
+    {% for field in form %}    
+    <div class="form-group row my-3 p-3">
+    {% if field.id_for_label == 'id_text' %} 
+        <label title="{{ form.text.help_text }}" for="{{ field.text.id_for_label }} ">
+        Текст поста
+        {% if field.field.required %}
+            <span class="required text-danger">*</span>
+        {% endif %}
+        </label>    
+        {{ field }}
+        {% if field.help_text %}
+        <small id="{{ field.text.id_for_label }}-help" class="form-text text-muted">
+            {% if is_edit %} Редактировать пост {% else %} {{ form.text.help_text }} {% endif %} 
+        </small>
+        {% endif %}
+    {% elif field.id_for_label == 'id_group'%}
+        <label for="{{ field.group.id_for_label }} ">
+        Группа
+        </label>    
+        {{ field }}
+        {% if field.help_text %}
+        <small id="{{ field.group.id_for_label }}-help" class="form-text text-muted">
+            {% if is_edit %} Группа поста {% else %} {{ form.group.help_text }} {% endif %} 
+        </small>
+        {% endif %}
+    {% endif %}
+    </div>
+    {% endfor %}  
+    <div class="d-flex justify-content-end">
+        <button type="submit" class="btn btn-primary">
+        {% if is_edit %} Сохранить {% else %} Добавить {% endif %}  
+        </button>
+    </div>
+</form>

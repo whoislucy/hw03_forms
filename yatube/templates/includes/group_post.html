@@ -13,6 +13,6 @@
         <a href="{% url 'posts:post_detail' post.pk %}">подробная информация</a><br>
     {% endif %} 
 </article>
-{% if post.group %} 
+{% if post.group != 'None'  and  post.group %} 
     <a href="{% url 'posts:grouppa' post.group.slug %}">все записи группы</a>
 {% endif %}

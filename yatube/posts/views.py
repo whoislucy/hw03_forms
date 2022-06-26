@@ -7,19 +7,22 @@ from .models import Group, Post, User
 
 POST_LIMIT = 10
 
-post_list = Post.objects.prefetch_related('author').all()
+POST_LIST_AUTHOR = Post.objects.select_related('author').all()
+POST_LIST_GROUP = Post.objects.select_related('group').all()
+GROUP_LIST = Group.objects.all()
+USER_LIST = User.objects.all()
 
 
-def paginator(request):
+def paginator(request, posts_category):
     """"Добавляем пагинацию"""
-    paginator = Paginator(post_list, POST_LIMIT)
+    paginator = Paginator(posts_category, POST_LIMIT)
     page_number = request.GET.get('page')
-    return paginator.get_page(page_number)
+    return paginator.get_page(page_number)   
 
 
 def index(request):
     """Выводим список последних постов"""
-    page_obj = paginator(request)
+    page_obj = paginator(request, POST_LIST_AUTHOR)
     context = {
         'page_obj': page_obj
     }
@@ -28,9 +31,9 @@ def index(request):
 
 def group_posts(request, slug):
     """Выводим содержание постов в конкретной группе"""
-    group = get_object_or_404(Group, slug=slug)
-    posts = group.posts.all()
-    page_obj = paginator(request)
+    group = get_object_or_404(GROUP_LIST, slug=slug)
+    posts = POST_LIST_GROUP.filter(group=group)
+    page_obj = paginator(request, posts)
     context = {
         'group': group,
         'posts': posts,
@@ -42,15 +45,12 @@ def group_posts(request, slug):
 def profile(request, username):
     """Выводим посты конкретного пользователя"""
     is_profile = True
-    author = get_object_or_404(User, username=username)
-    author_posts = author.posts.all()
+    author = get_object_or_404(USER_LIST, username=username)
+    author_posts = POST_LIST_AUTHOR.filter(author=author)
     count_posts = author_posts.count()
-    paginator = Paginator(author_posts, POST_LIMIT)
-    page_number = request.GET.get('page')
-    page_obj = paginator.get_page(page_number)
+    page_obj = paginator(request, author_posts)
     context = {
         'author': author,
-        'posts': author_posts,
         'page_obj': page_obj,
         'count_posts': count_posts,
         'is_profile': is_profile
@@ -60,7 +60,7 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     """Выводим конкретный пост пользователя"""
-    post_selected = get_object_or_404(Post, id=post_id)
+    post_selected = get_object_or_404(POST_LIST_AUTHOR, id=post_id)
     author = post_selected.author
     author_posts = author.posts.all()
     count_author_posts = author_posts.count()
@@ -75,14 +75,11 @@ def post_detail(request, post_id):
 def post_create(request):
     """Форма для публикации поста"""
     form = PostForm(request.POST or None)
-    if request.method == 'POST':
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            form.save()
-            return redirect('posts:profile', post.author)
-        return render(request, 'posts/create_post.html', {'form': form})
-    form = PostForm()
+    if request.method == 'POST' and form.is_valid():
+        post = form.save(commit=False)
+        post.author = request.user
+        form.save()
+        return redirect('posts:profile', post.author)
     return render(request, 'posts/create_post.html', {'form': form})
 
 
@@ -90,7 +87,7 @@ def post_create(request):
 def post_edit(request, post_id):
     """Форма редактирования поста"""
     is_edit = True
-    post_selected = get_object_or_404(Post, id=post_id)
+    post_selected = get_object_or_404(POST_LIST_AUTHOR, id=post_id)
     if post_selected.author != request.user:
         return redirect('posts:post_detail', post_id)
     form = PostForm(request.POST or None, instance=post_selected)
@@ -99,11 +96,9 @@ def post_edit(request, post_id):
         'form': form,
         'post_selected': post_selected
     }
-    if request.method == 'POST':
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            form.save()
-            return redirect('posts:post_detail', post.id)
-        return render(request, 'posts/create_post.html', context)
+    if request.method == 'POST' and form.is_valid():
+        post = form.save(commit=False)
+        post.author = request.user
+        form.save()
+        return redirect('posts:post_detail', post.id)
     return render(request, 'posts/create_post.html', context)
