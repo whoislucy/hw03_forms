@@ -7,11 +7,6 @@ from .models import Group, Post, User
 
 POST_LIMIT = 10
 
-POST_LIST_AUTHOR = Post.objects.select_related('author').all()
-POST_LIST_GROUP = Post.objects.select_related('group').all()
-GROUP_LIST = Group.objects.all()
-USER_LIST = User.objects.all()
-
 
 def paginator(request, posts_category):
     """"Добавляем пагинацию"""
@@ -22,7 +17,8 @@ def paginator(request, posts_category):
 
 def index(request):
     """Выводим список последних постов"""
-    page_obj = paginator(request, POST_LIST_AUTHOR)
+    post_list_author = Post.objects.select_related('author').all()
+    page_obj = paginator(request, post_list_author)
     context = {
         'page_obj': page_obj
     }
@@ -31,8 +27,10 @@ def index(request):
 
 def group_posts(request, slug):
     """Выводим содержание постов в конкретной группе"""
-    group = get_object_or_404(GROUP_LIST, slug=slug)
-    posts = POST_LIST_GROUP.filter(group=group)
+    group_list = Group.objects.all()
+    post_list_group = Post.objects.select_related('group').all()
+    group = get_object_or_404(group_list, slug=slug)
+    posts = post_list_group.filter(group=group)
     page_obj = paginator(request, posts)
     context = {
         'group': group,
@@ -45,8 +43,9 @@ def group_posts(request, slug):
 def profile(request, username):
     """Выводим посты конкретного пользователя"""
     is_profile = True
-    author = get_object_or_404(USER_LIST, username=username)
-    author_posts = POST_LIST_AUTHOR.filter(author=author)
+    user_list = User.objects.all()
+    author = get_object_or_404(user_list, username=username)
+    author_posts = Post.objects.select_related('author').filter(author=author)
     count_posts = author_posts.count()
     page_obj = paginator(request, author_posts)
     context = {
@@ -60,7 +59,8 @@ def profile(request, username):
 
 def post_detail(request, post_id):
     """Выводим конкретный пост пользователя"""
-    post_selected = get_object_or_404(POST_LIST_AUTHOR, id=post_id)
+    post_list_group = Post.objects.select_related('group').all()
+    post_selected = get_object_or_404(post_list_group, id=post_id)
     author = post_selected.author
     author_posts = author.posts.all()
     count_author_posts = author_posts.count()
@@ -87,18 +87,19 @@ def post_create(request):
 def post_edit(request, post_id):
     """Форма редактирования поста"""
     is_edit = True
-    post_selected = get_object_or_404(POST_LIST_AUTHOR, id=post_id)
+    post_list_author = Post.objects.select_related('author').all()
+    post_selected = get_object_or_404(post_list_author, id=post_id)
     if post_selected.author != request.user:
         return redirect('posts:post_detail', post_id)
     form = PostForm(request.POST or None, instance=post_selected)
-    context = {
-        'is_edit': is_edit,
-        'form': form,
-        'post_selected': post_selected
-    }
     if request.method == 'POST' and form.is_valid():
         post = form.save(commit=False)
         post.author = request.user
         form.save()
         return redirect('posts:post_detail', post.id)
+    context = {
+        'is_edit': is_edit,
+        'form': form,
+        'post_selected': post_selected
+    }
     return render(request, 'posts/create_post.html', context)
