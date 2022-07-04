@@ -25,7 +25,6 @@ class PaginatorViewsTest(TestCase):
         cls.authorized_client = Client()
         i = 0
         for i in range(15):
-            i += 1
             Post.objects.create(
                 text='Тестовый текст поста_' + str(i),
                 group=Group.objects.get(title='LucyTestGroup'),
@@ -34,6 +33,7 @@ class PaginatorViewsTest(TestCase):
         cls.page_obj = Post.objects.all()
         cls.limit_1_page = 10
         cls.limit_2_page = 5
+        cls.page_num = 2
 
     def test_first_page_contains_ten_records(self):
         """Проверка: количество постов на первой странице равно 10."""
@@ -42,5 +42,8 @@ class PaginatorViewsTest(TestCase):
 
     def test_second_page_contains_five_records(self):
         """Проверка: на второй странице должно быть 5 постов."""
-        response = self.client.get(reverse('posts:index') + '?page=2')
+        response = self.client.get(
+            reverse('posts:index')
+            + f'?page={self.page_num}'
+        )
         self.assertEqual(len(response.context['page_obj']), self.limit_2_page)
