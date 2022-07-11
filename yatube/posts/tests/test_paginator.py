@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+
 from posts.models import Group, Post, User
 
 User = get_user_model()
@@ -18,12 +19,15 @@ class PaginatorViewsTest(TestCase):
             slug='Testovaya',
             description='Эта группа создана для тестирования'
         )
+        cls.index = (
+            'posts:index',
+            'posts/index.html',
+            None)
 
     @classmethod
     def setUp(cls):
         """Здесь создаются фикстуры: клиент и 15 тестовых записей."""
         cls.authorized_client = Client()
-        i = 0
         for i in range(15):
             Post.objects.create(
                 text='Тестовый текст поста_' + str(i),
@@ -37,7 +41,10 @@ class PaginatorViewsTest(TestCase):
 
     def test_first_page_contains_ten_records(self):
         """Проверка: количество постов на первой странице равно 10."""
-        response = self.client.get(reverse('posts:index'))
+        index_data = {
+            'app_route': self.index[0]
+        }
+        response = self.client.get(reverse(index_data['app_route']))
         self.assertEqual(len(response.context['page_obj']), self.limit_1_page)
 
     def test_second_page_contains_five_records(self):

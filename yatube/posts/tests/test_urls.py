@@ -1,6 +1,8 @@
-from django.contrib.auth import get_user_model
-from django.test import TestCase, Client
 from http import HTTPStatus
+
+from django.contrib.auth import get_user_model
+from django.test import Client, TestCase
+from django.urls import reverse
 
 from posts.models import Group, Post, User
 
@@ -21,21 +23,51 @@ class PostURLTests(TestCase):
             author=cls.user,
             text='Тестовая пост',
         )
-        cls.urls_not_autorized = (
+        cls.index = (
+            'posts:index',
+            'posts/index.html',
+            None,
             '/',
+            None)
+        cls.group_list = (
+            'posts:grouppa',
+            'posts/group_list.html',
+            [cls.group.slug],
             f'/group/{cls.group.slug}/',
-            f'/profile/{cls.post.author}/',
-            f'/posts/{cls.post.id}/',
+            None
         )
-        cls.tmpl_urls_not_autorized_names = {
-            'posts/index.html': '/',
-            'posts/group_list.html': f'/group/{cls.group.slug}/',
-            'posts/profile.html': f'/profile/{cls.post.author}/',
-            'posts/post_detail.html': f'/posts/{cls.post.id}/',
-        }
-        cls.tmpl_urls_all_autorized = {
-            'posts/create_post.html': f'/posts/{cls.post.id}/edit/',
-        }
+        cls.profile = (
+            'posts:profile',
+            'posts/profile.html',
+            [cls.user.username],
+            f'/profile/{cls.post.author}/',
+            None
+        )
+        cls.detail = (
+            'posts:post_detail',
+            'posts/post_detail.html',
+            [cls.post.id],
+            f'/posts/{cls.post.id}/',
+            None
+        )
+        cls.edit = (
+            'posts:post_edit',
+            'posts/create_post.html',
+            [cls.post.id],
+            f'/posts/{cls.post.id}/edit/',
+            'author_user'
+        )
+        cls.create = (
+            'posts:post_create',
+            'posts/create_post.html',
+            None,
+            f'/posts/{cls.post.id}/edit/',
+            'autorized'
+        )
+        cls.ass_urls = (
+            cls.index, cls.group_list, cls.profile,
+            cls.detail, cls.edit, cls.create
+        )
 
     def setUp(self):
         """Создаем неавторизованный клиент, создаем пользователей"""
@@ -53,34 +85,52 @@ class PostURLTests(TestCase):
 
     def test_urls_all(self):
         """Проверяем общедоступные страницы"""
-        for url in self.urls_not_autorized:
-            response = self.guest_client.get(url)
-            self.assertEqual(response.status_code, HTTPStatus.OK)
+        for route, template, args, address, autorized in self.ass_urls:
+            with self.subTest(address=address):
+                if autorized is None:
+                    response = self.guest_client.get(address)
+                    self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_urls_autorized(self):
         """Проверяем доступность страниц для авторизованного пользователя"""
-        response = self.authorized_client.get('/create/')
+        create_data = {
+            'route': self.create[0]
+        }
+        response = self.authorized_client.get(
+            reverse(create_data['route'])
+        )
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_author_edit(self):
         """Проверка редактирования поста автором"""
-        post = PostURLTests.post
-        response = self.post_author.get(f'/posts/{post.id}/edit/')
+        edit_data = {
+            'route': self.edit[0],
+            'args': self.edit[2]
+        }
+        response = self.post_author.get(
+            reverse(edit_data['route'], args=edit_data['args'])
+        )
         self.assertEqual(response.status_code, HTTPStatus.OK)
 
-    def test_urls_all_uses_correct_template(self):
+    def test_urls_all_uses_correct_template_(self):
         """URL-адрес использует соответствующий шаблон."""
-        for template, address in self.tmpl_urls_not_autorized_names.items():
+        for route, template, args, address, autorized in self.ass_urls:
             with self.subTest(address=address):
-                response = self.guest_client.get(address, follow=True)
-                self.assertTemplateUsed(response, template)
-
-    def test_urls_autorized_uses_correct_template(self):
-        """URL-адрес использует соответствующий шаблон."""
-        self.tmpl_urls_all_autorized = {
-            'posts/create_post.html': f'/posts/{self.post.id}/edit/',
-        }
-        for template, address in self.tmpl_urls_all_autorized.items():
-            with self.subTest(address=address):
-                response = self.authorized_client.get(address, follow=True)
-                self.assertTemplateUsed(response, template)
+                if autorized == "author_user" and route == "posts:post_edit":
+                    response = self.post_author.get(
+                        address,
+                        follow=True
+                    )
+                    self.assertTemplateUsed(response, template)
+                elif autorized == 'autorized' and route != 'posts:post_edit':
+                    response = self.authorized_client.get(
+                        address,
+                        follow=True
+                    )
+                    self.assertTemplateUsed(response, template)
+                elif autorized is None:
+                    response = self.guest_client.get(
+                        address,
+                        follow=True
+                    )
+                    self.assertTemplateUsed(response, template)
