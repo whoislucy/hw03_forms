@@ -1,5 +1,4 @@
 from django import forms
-
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
@@ -20,7 +19,7 @@ class PostsTests(TestCase):
             slug='TestovayaGroupContext',
             description='Эта группа создана для тестирования context'
         )
-        cls.group2 = Group.objects.create(
+        cls.group_other = Group.objects.create(
             title='MikeTestGroupContext',
             slug='MikeTestovayaGroupContext',
             description='Эта группа Mike создана для тестирования context'
@@ -38,6 +37,11 @@ class PostsTests(TestCase):
             'posts:grouppa',
             'posts/group_list.html',
             [cls.group.slug]
+        )
+        cls.group_list_other = (
+            'posts:grouppa',
+            'posts/group_list.html',
+            [cls.group_other.slug]
         )
         cls.profile = (
             'posts:profile',
@@ -71,8 +75,7 @@ class PostsTests(TestCase):
         cls.authorized_client = Client()
         cls.authorized_client.force_login(cls.user)
         cls.authorized_client_second = Client()
-        cls.authorized_client.force_login(cls.user_second)
-        cls.post_author = User.objects.get(username='LucyTestContext')
+        cls.authorized_client_second.force_login(cls.user_second)
         cls.post_author = Client()
         cls.post_author.force_login(cls.user)
 
@@ -145,10 +148,12 @@ class PostsTests(TestCase):
         )
         first_post = len(self.page_obj) - 1
         first_object = response.context['page_obj'][first_post]
-        task_text_0 = first_object.text
-        task_author_0 = first_object.author.username
-        self.assertEqual(task_text_0, self.post.text)
-        self.assertEqual(task_author_0, self.post.author.username)
+        self.assertEqual(first_object.text, self.post.text)
+        self.assertEqual(
+            first_object.author.username,
+            self.post.author.username
+        )
+        self.assertEqual(first_object.group.id, self.post.group.id)
 
     def test_group_posts_show_correct_context(self):
         """Шаблон group_posts сформирован с правильным контекстом."""
@@ -183,6 +188,8 @@ class PostsTests(TestCase):
         response = self.authorized_client.get(
             reverse(profile_data['route'], args=profile_data['args'])
         )
+        first_post = len(self.page_obj) - 1
+        first_object = response.context['page_obj'][first_post]
         self.assertEqual(
             response.context.get('author').username,
             self.post.author.username
@@ -190,6 +197,9 @@ class PostsTests(TestCase):
         self.assertTrue(
             response.context.get('is_profile')
         )
+        self.assertEqual(first_object.id, self.post.id)
+        self.assertEqual(first_object.text, self.post.text)
+        self.assertEqual(first_object.group.id, self.post.group.id)
 
     def test_post_exist_index(self):
         """Проверяем что пост появился на странице постов"""
@@ -201,17 +211,22 @@ class PostsTests(TestCase):
         )
         all_posts = response.context['page_obj']
         new_dict = {}
-        for new_post in all_posts:
-            if new_post.id == 1:
-                new_dict['text'] = new_post.text
-                new_dict['group'] = new_post.group.slug
-                new_dict['author'] = new_post.author.username
+        first_post = len(all_posts.object_list) - 1
+        new_dict['text'] = all_posts.object_list[first_post].text
+        new_dict['group'] = all_posts.object_list[first_post].group.slug
+        new_dict['author'] = all_posts.object_list[first_post].author.username
         self.assertEqual(
             new_dict['text'],
-            self.post.text
+            self.page_obj.latest('-pub_date').text
         )
-        self.assertEqual(new_dict['group'], self.group.slug)
-        self.assertEqual(new_dict['author'], self.post.author.username)
+        self.assertEqual(
+            new_dict['group'],
+            self.page_obj.latest('-pub_date').group.slug
+        )
+        self.assertEqual(
+            new_dict['author'],
+            self.page_obj.latest('-pub_date').author.username
+        )
 
     def test_post_exist_group_page(self):
         """Проверяем, что пост появился на странице группы"""
@@ -222,19 +237,24 @@ class PostsTests(TestCase):
         response = self.authorized_client.get(
             reverse(group_list_data['route'], args=group_list_data['args'])
         )
-        all_posts = response.context['page_obj']
+        all_posts = response.context['posts']
+        first_post = len(all_posts) - 1
         new_dict = {}
-        for post in all_posts:
-            if post.id == 1:
-                new_dict['text'] = post.text
-                new_dict['group'] = post.group.slug
-                new_dict['author'] = post.author.username
+        new_dict['text'] = all_posts[first_post].text
+        new_dict['group'] = all_posts[first_post].group.slug
+        new_dict['author'] = all_posts[first_post].author.username
         self.assertEqual(
             new_dict['text'],
-            self.post.text
+            self.page_obj.latest('-pub_date').text
         )
-        self.assertEqual(new_dict['group'], self.group.slug)
-        self.assertEqual(new_dict['author'], self.post.author.username)
+        self.assertEqual(
+            new_dict['group'],
+            self.page_obj.latest('-pub_date').group.slug
+        )
+        self.assertEqual(
+            new_dict['author'],
+            self.page_obj.latest('-pub_date').author.username
+        )
 
     def test_post_exist_profile_page(self):
         """Проверяем что пост появился в профайле пользователя"""
@@ -246,22 +266,22 @@ class PostsTests(TestCase):
             reverse(profile_data['route'], args=profile_data['args'])
         )
         all_posts = response.context['page_obj']
-        for post in all_posts:
-            if post.id == 1:
-                mine_post = post
-                self.assertIn(mine_post, all_posts)
+        self.assertIn(self.post, all_posts)
+        self.assertEqual(
+            response.context['author'].username,
+            self.post.author.username
+        )
 
     def test_post_not_exist_in_different_group_page(self):
         """Проверяем, что пост НЕ появился на странице не своей группы"""
-        profile_data = {
-            'route': self.profile[0],
-            'args': self.profile[2]
+        group_list_other_data = {
+            'route': self.group_list_other[0],
+            'args': self.group_list_other[2]
         }
-        response = self.authorized_client_second.get(
-            reverse(profile_data['route'], args=profile_data['args'])
+        response = self.authorized_client.get(
+            reverse(
+                group_list_other_data['route'],
+                args=group_list_other_data['args']
+            )
         )
-        all_posts = response.context['page_obj']
-        for post in all_posts:
-            if post.id != 1:
-                mine_post = False
-                self.assertNotIn(mine_post, all_posts)
+        self.assertNotIn(self.post, response.context['posts'])
