@@ -44,6 +44,6 @@ class PaginatorViewsTest(TestCase):
     def test_second_page_contains_five_records(self):
         """Проверка: на второй странице должно быть 5 постов."""
         response = self.client.get(
-            f"{reverse('posts:index')}?page={self.page_num}"
+            f"{reverse(self.index)}?page={self.page_num}"
         )
         self.assertEqual(len(response.context['page_obj']), self.limit_2_page)

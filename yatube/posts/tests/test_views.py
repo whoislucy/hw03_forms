@@ -91,11 +91,9 @@ class PostsTests(TestCase):
     def test_create_post_page_show_correct_context(self):
         """Шаблон create_post сформирован с правильными типами полей."""
         """Форма создания поста"""
-        create_data = {
-            'route': self.create[0]
-        }
+        app_route, template, args_url = self.create
         response = self.authorized_client.get(
-            reverse(create_data['route'])
+            reverse(app_route)
         )
         form_fields = {
             'text': forms.fields.CharField,
@@ -111,12 +109,9 @@ class PostsTests(TestCase):
     def test_edit_post_page_show_correct_context(self):
         """Шаблон edit_post сформирован с правильными типами полей."""
         """Форма редактирования поста"""
-        edit_data = {
-            'route': self.edit[0],
-            'args': self.edit[2]
-        }
+        app_route, template, args_url = self.edit
         response = self.post_author.get(
-            reverse(edit_data['route'], args=edit_data['args'])
+            reverse(app_route, args=args_url)
         )
         form_fields = {
             'text': forms.fields.CharField,
@@ -137,33 +132,36 @@ class PostsTests(TestCase):
             self.group.title
         )
 
-    def test_index_page_show_correct_context(self):
+    def check_context(self, id, text, author, group, group_slug):
+        self.assertEqual(id, self.post.id,)
+        self.assertEqual(text, self.post.text,)
+        self.assertEqual(author, self.post.author.username,)
+        self.assertEqual(group, self.post.group.id)
+        self.assertEqual(group_slug, self.post.group.slug)
+
+    def index_page_show_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
         """Список постов с сортировкой от новых к старым"""
-        index_data = {
-            'route': self.index[0]
-        }
+        app_route, template, args_url = self.index
         response = self.authorized_client.get(
-            reverse(index_data['route'])
+            reverse(app_route)
         )
         first_post = len(self.page_obj) - 1
         first_object = response.context['page_obj'][first_post]
-        self.assertEqual(first_object.text, self.post.text)
-        self.assertEqual(
+        self.check_context(
+            first_object.id,
+            first_object.text,
             first_object.author.username,
-            self.post.author.username
+            first_object.group.id,
+            first_object.group.slug
         )
-        self.assertEqual(first_object.group.id, self.post.group.id)
 
     def test_group_posts_show_correct_context(self):
         """Шаблон group_posts сформирован с правильным контекстом."""
         """Список постов Группы"""
-        group_list_data = {
-            'route': self.group_list[0],
-            'args': self.group_list[2]
-        }
+        app_route, template, args_url = self.group_list
         response = self.authorized_client.get(
-            reverse(group_list_data['route'], args=group_list_data['args'])
+            reverse(app_route, args=args_url)
         )
         self.assertEqual(
             response.context.get('group').title,
@@ -181,12 +179,9 @@ class PostsTests(TestCase):
     def test_profile_show_correct_context(self):
         """Шаблон group_posts сформирован с правильным контекстом."""
         """Список постов пользователя"""
-        profile_data = {
-            'route': self.profile[0],
-            'args': self.profile[2]
-        }
+        app_route, template, args_url = self.profile
         response = self.authorized_client.get(
-            reverse(profile_data['route'], args=profile_data['args'])
+            reverse(app_route, args=args_url)
         )
         first_post = len(self.page_obj) - 1
         first_object = response.context['page_obj'][first_post]
@@ -197,45 +192,35 @@ class PostsTests(TestCase):
         self.assertTrue(
             response.context.get('is_profile')
         )
-        self.assertEqual(first_object.id, self.post.id)
-        self.assertEqual(first_object.text, self.post.text)
-        self.assertEqual(first_object.group.id, self.post.group.id)
+        self.check_context(
+            first_object.id,
+            first_object.text,
+            first_object.author.username,
+            first_object.group.id,
+            first_object.group.slug
+        )
 
     def test_post_exist_index(self):
         """Проверяем что пост появился на странице постов"""
-        index_data = {
-            'route': self.index[0]
-        }
+        app_route, template, args_url = self.index
         response = self.authorized_client.get(
-            reverse(index_data['route'])
+            reverse(app_route)
         )
         all_posts = response.context['page_obj']
-        new_dict = {}
         first_post = len(all_posts.object_list) - 1
-        new_dict['text'] = all_posts.object_list[first_post].text
-        new_dict['group'] = all_posts.object_list[first_post].group.slug
-        new_dict['author'] = all_posts.object_list[first_post].author.username
-        self.assertEqual(
-            new_dict['text'],
-            self.page_obj.latest('-pub_date').text
-        )
-        self.assertEqual(
-            new_dict['group'],
-            self.page_obj.latest('-pub_date').group.slug
-        )
-        self.assertEqual(
-            new_dict['author'],
-            self.page_obj.latest('-pub_date').author.username
+        self.check_context(
+            all_posts.object_list[first_post].id,
+            all_posts.object_list[first_post].text,
+            all_posts.object_list[first_post].author.username,
+            all_posts.object_list[first_post].group.id,
+            all_posts.object_list[first_post].group.slug
         )
 
     def test_post_exist_group_page(self):
         """Проверяем, что пост появился на странице группы"""
-        group_list_data = {
-            'route': self.group_list[0],
-            'args': self.group_list[2]
-        }
+        app_route, template, args_url = self.group_list
         response = self.authorized_client.get(
-            reverse(group_list_data['route'], args=group_list_data['args'])
+            reverse(app_route, args=args_url)
         )
         all_posts = response.context['posts']
         first_post = len(all_posts) - 1
@@ -258,12 +243,9 @@ class PostsTests(TestCase):
 
     def test_post_exist_profile_page(self):
         """Проверяем что пост появился в профайле пользователя"""
-        profile_data = {
-            'route': self.profile[0],
-            'args': self.profile[2]
-        }
+        app_route, template, args_url = self.profile
         response = self.authorized_client.get(
-            reverse(profile_data['route'], args=profile_data['args'])
+            reverse(app_route, args=args_url)
         )
         all_posts = response.context['page_obj']
         self.assertIn(self.post, all_posts)
@@ -274,14 +256,8 @@ class PostsTests(TestCase):
 
     def test_post_not_exist_in_different_group_page(self):
         """Проверяем, что пост НЕ появился на странице не своей группы"""
-        group_list_other_data = {
-            'route': self.group_list_other[0],
-            'args': self.group_list_other[2]
-        }
+        app_route, template, args_url = self.group_list_other
         response = self.authorized_client.get(
-            reverse(
-                group_list_other_data['route'],
-                args=group_list_other_data['args']
-            )
+            reverse(app_route, args=args_url)
         )
         self.assertNotIn(self.post, response.context['posts'])

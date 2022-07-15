@@ -75,12 +75,9 @@ class PostCreateFormTests(TestCase):
 
     def test_edit_post(self):
         """Проверяем, что происходит изменение поста"""
-        edit_data = {
-            'app_route': self.edit[0],
-            'args_url': self.edit[2]
-        }
+        app_route, template, args_url = self.edit
         response = self.post_author.get(
-            reverse(edit_data['app_route'], args=edit_data['args_url'])
+            reverse(app_route, args=args_url)
         )
         author_post = response.context['post_selected']
         upd_form_data = {
@@ -89,7 +86,7 @@ class PostCreateFormTests(TestCase):
             'post_author': self.user_author.username
         }
         response = self.post_author.post(
-            reverse(edit_data['app_route'], args=edit_data['args_url']),
+            reverse(app_route, args=args_url),
             data=upd_form_data,
             follow=True
         )
@@ -103,15 +100,13 @@ class PostCreateFormTests(TestCase):
 
     def test_fields_created_post(self):
         """Тестируем что поля нового поста сохранились"""
-        create_data = {
-            'app_route': self.create[0]
-        }
+        app_route, template, args_url = self.create
         form_data = {
             'text': 'Самый новый тестовый текст от LucyTesterForm',
             'group': self.group.id
         }
         self.authorized_client.post(
-            reverse(create_data['app_route']),
+            reverse(app_route),
             data=form_data,
             follow=True
         )
@@ -127,12 +122,9 @@ class PostCreateFormTests(TestCase):
 
     def test_fields_updates_post(self):
         """Тестируем что поля проапдеченного поста сохранились"""
-        edit_data = {
-            'app_route': self.edit[0],
-            'args_url': self.edit[2]
-        }
+        app_route, template, args_url = self.edit
         response = self.post_author.get(
-            reverse(edit_data['app_route'], args=edit_data['args_url'])
+            reverse(app_route, args=args_url)
         )
         author_post = response.context['post_selected']
         upd_form_data = {
@@ -141,7 +133,7 @@ class PostCreateFormTests(TestCase):
             'post_author': self.user_author.username
         }
         response = self.post_author.post(
-            reverse(edit_data['app_route'], args=edit_data['args_url']),
+            reverse(app_route, args=args_url),
             data=upd_form_data,
             follow=True
         )
