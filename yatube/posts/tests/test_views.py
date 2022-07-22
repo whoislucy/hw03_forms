@@ -138,7 +138,7 @@ class PostsTests(TestCase):
         self.assertEqual(check_object.author, proof_object.author)
         self.assertEqual(check_object.group.id, proof_object.group.id)
         self.assertEqual(check_object.group.slug, proof_object.group.slug)
-    
+
     def check_fields(self, check_object, proof_object):
         self.assertEqual(check_object.title, proof_object.title)
         self.assertEqual(check_object.slug, proof_object.slug)
