@@ -132,12 +132,17 @@ class PostsTests(TestCase):
             self.group.title
         )
 
-    def check_context(self, id, text, author, group, group_slug):
-        self.assertEqual(id, self.post.id,)
-        self.assertEqual(text, self.post.text,)
-        self.assertEqual(author, self.post.author.username,)
-        self.assertEqual(group, self.post.group.id)
-        self.assertEqual(group_slug, self.post.group.slug)
+    def check_context(self, check_object, proof_object):
+        self.assertEqual(check_object.id, proof_object.id,)
+        self.assertEqual(check_object.text, proof_object.text,)
+        self.assertEqual(check_object.author, proof_object.author)
+        self.assertEqual(check_object.group.id, proof_object.group.id)
+        self.assertEqual(check_object.group.slug, proof_object.group.slug)
+    
+    def check_fields(self, check_object, proof_object):
+        self.assertEqual(check_object.title, proof_object.title)
+        self.assertEqual(check_object.slug, proof_object.slug)
+        self.assertEqual(check_object.description, proof_object.description)
 
     def index_page_show_correct_context(self):
         """Шаблон index сформирован с правильным контекстом."""
@@ -148,13 +153,8 @@ class PostsTests(TestCase):
         )
         first_post = len(self.page_obj) - 1
         first_object = response.context['page_obj'][first_post]
-        self.check_context(
-            first_object.id,
-            first_object.text,
-            first_object.author.username,
-            first_object.group.id,
-            first_object.group.slug
-        )
+        base_object = self.post
+        self.check_context(first_object, base_object)
 
     def test_group_posts_show_correct_context(self):
         """Шаблон group_posts сформирован с правильным контекстом."""
@@ -163,18 +163,9 @@ class PostsTests(TestCase):
         response = self.authorized_client.get(
             reverse(app_route, args=args_url)
         )
-        self.assertEqual(
-            response.context.get('group').title,
-            self.group.title
-        )
-        self.assertEqual(
-            response.context.get('group').slug,
-            self.group.slug
-        )
-        self.assertEqual(
-            response.context.get('group').description,
-            self.group.description
-        )
+        group_fields = response.context.get('group')
+        base_group_fields = self.group
+        self.check_fields(group_fields, base_group_fields)
 
     def test_profile_show_correct_context(self):
         """Шаблон group_posts сформирован с правильным контекстом."""
@@ -185,6 +176,7 @@ class PostsTests(TestCase):
         )
         first_post = len(self.page_obj) - 1
         first_object = response.context['page_obj'][first_post]
+        base_object = self.post
         self.assertEqual(
             response.context.get('author').username,
             self.post.author.username
@@ -192,13 +184,7 @@ class PostsTests(TestCase):
         self.assertTrue(
             response.context.get('is_profile')
         )
-        self.check_context(
-            first_object.id,
-            first_object.text,
-            first_object.author.username,
-            first_object.group.id,
-            first_object.group.slug
-        )
+        self.check_context(first_object, base_object)
 
     def test_post_exist_index(self):
         """Проверяем что пост появился на странице постов"""
@@ -208,13 +194,9 @@ class PostsTests(TestCase):
         )
         all_posts = response.context['page_obj']
         first_post = len(all_posts.object_list) - 1
-        self.check_context(
-            all_posts.object_list[first_post].id,
-            all_posts.object_list[first_post].text,
-            all_posts.object_list[first_post].author.username,
-            all_posts.object_list[first_post].group.id,
-            all_posts.object_list[first_post].group.slug
-        )
+        first_post_post = all_posts.object_list[first_post]
+        base_object = self.post
+        self.check_context(first_post_post, base_object)
 
     def test_post_exist_group_page(self):
         """Проверяем, что пост появился на странице группы"""
@@ -224,20 +206,16 @@ class PostsTests(TestCase):
         )
         all_posts = response.context['posts']
         first_post = len(all_posts) - 1
-        new_dict = {}
-        new_dict['text'] = all_posts[first_post].text
-        new_dict['group'] = all_posts[first_post].group.slug
-        new_dict['author'] = all_posts[first_post].author.username
         self.assertEqual(
-            new_dict['text'],
+            all_posts[first_post].text,
             self.page_obj.latest('-pub_date').text
         )
         self.assertEqual(
-            new_dict['group'],
+            all_posts[first_post].group.slug,
             self.page_obj.latest('-pub_date').group.slug
         )
         self.assertEqual(
-            new_dict['author'],
+            all_posts[first_post].author.username,
             self.page_obj.latest('-pub_date').author.username
         )
 
